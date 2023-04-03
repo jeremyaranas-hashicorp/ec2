@@ -58,6 +58,30 @@ resource "aws_instance" "vault_server" {
   }
 
   provisioner "file" {
+    source      = "update-etc-hosts.sh"
+    destination = "/tmp/update-etc-hosts.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/update-etc-hosts.sh",
+      "sudo /tmp/update-etc-hosts.sh",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "generate-cert.sh"
+    destination = "/tmp/generate-cert.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/generate-cert.sh",
+      "/tmp/generate-cert.sh",
+    ]
+  }
+
+  provisioner "file" {
     source      = "init.sh"
     destination = "/tmp/init.sh"
   }
@@ -65,7 +89,7 @@ resource "aws_instance" "vault_server" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/init.sh",
-      "/tmp/init.sh",
+      # "/tmp/init.sh",
     ]
   }
 }
