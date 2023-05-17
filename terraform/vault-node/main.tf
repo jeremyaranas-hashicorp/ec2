@@ -1,31 +1,52 @@
+# Ubuntu
 provider "aws" {
   region = var.aws_region
 }
 
-terraform {
-  required_providers {
-    vault = "~> 3.7.0"
-  }
-}
-
-data "aws_ami" "amazon-linux-2" {
+data "aws_ami" "ubuntu" {
   most_recent = true
-
-
-  filter {
-    name   = "owner-alias"
-    values = ["amazon"]
-  }
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
   }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
 }
+
+
+# # RHEL
+# provider "aws" {
+#   region = var.aws_region
+# }
+
+# data "aws_ami" "amazon-linux-2" {
+#  most_recent = true
+
+
+#  filter {
+#    name   = "owner-alias"
+#    values = ["amazon"]
+#  }
+
+
+#  filter {
+#    name   = "name"
+#    values = ["amzn2-ami-hvm*"]
+#  }
+# }
 
 resource "aws_instance" "vault_server" {
   count                       = length(var.vault_server_name)
-  ami                         = data.aws_ami.amazon-linux-2.id
+  # Ubuntu
+  ami                         = data.aws_ami.ubuntu.id
+  # # RHEL
+  # ami                         = data.aws_ami.amazon-linux-2.id
   instance_type               = var.instance_type
   subnet_id                   = module.vault_test_vpc.public_subnets[0]
   key_name                    = var.key_name
@@ -50,12 +71,22 @@ resource "aws_instance" "vault_server" {
     ignore_changes = [ami, tags]
   }
 
+  # Ubuntu
   connection {
     type        = "ssh"
-    user        = "ec2-user"
+    user        = "ubuntu"
     private_key = file("~/Saved/${var.key_name}.cer")
     host        = self.public_ip
   }
+
+# # RHEL
+#   connection {
+#     type        = "ssh"
+#     user        = "ec2-user"
+#     private_key = file("~/Saved/${var.key_name}.cer")
+#     host        = self.public_ip
+#   }
+
 
   provisioner "file" {
     source      = "init.sh"

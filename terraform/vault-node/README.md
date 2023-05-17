@@ -3,3 +3,5 @@ This repo will spin up a Vault instance in EC2. Vault will initialize and unseal
 `terraform init`
 `terraform plan`
 `terraform apply -auto-approve`
+
+This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws
