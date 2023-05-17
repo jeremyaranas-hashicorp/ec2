@@ -7,7 +7,11 @@ logger() {
   echo "$DT $0: $1"
 }
 
-# Variables
+logger "Running"
+
+##--------------------------------------------------------------------
+## Variables
+
 # Get private IP address
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 PUBLIC_IP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
@@ -16,8 +20,11 @@ VAULT_ZIP="${tpl_vault_zip_file}"
 
 # Detect package management system
 YUM=$(which yum 2>/dev/null)
+APT_GET=$(which apt-get 2>/dev/null)
 
-# Functions
+##--------------------------------------------------------------------
+## Functions
+
 user_rhel() {
   # RHEL/CentOS user setup
   sudo /usr/sbin/groupadd --force --system $${USER_GROUP}
@@ -34,44 +41,117 @@ user_rhel() {
   fi
 }
 
-# Install base prerequisites
+user_ubuntu() {
+  # Ubuntu user setup
+  if ! getent group $${USER_GROUP} >/dev/null
+  then
+    sudo addgroup --system $${USER_GROUP} >/dev/null
+  fi
+
+  if ! getent passwd $${USER_NAME} >/dev/null
+  then
+    sudo adduser \
+      --system \
+      --disabled-login \
+      --ingroup $${USER_GROUP} \
+      --home $${USER_HOME} \
+      --no-create-home \
+      --gecos "$${USER_COMMENT}" \
+      --shell /bin/false \
+      $${USER_NAME}  >/dev/null
+  fi
+}
+
+##--------------------------------------------------------------------
+## Install base prerequisites
+
 logger "Setting timezone to UTC"
 sudo timedatectl set-timezone UTC
-logger "Performing updates and installing prerequisites"
-sudo yum-config-manager --enable rhui-REGION-rhel-server-releases-optional
-sudo yum-config-manager --enable rhui-REGION-rhel-server-supplementary
-sudo yum-config-manager --enable rhui-REGION-rhel-server-extras
-sudo yum -y check-update
-sudo yum install -q -y wget unzip bind-utils ruby rubygems ntp jq
-sudo systemctl start ntpd.service
-sudo systemctl enable ntpd.service
 
-# Install AWS specific prerequisites
-logger "Performing updates and installing prerequisites"
-curl --silent -O https://bootstrap.pypa.io/get-pip.py
-sudo python get-pip.py
-sudo pip install awscli
+if [[ ! -z $${YUM} ]]; then
+  logger "RHEL/CentOS system detected"
+  logger "Performing updates and installing prerequisites"
+  sudo yum-config-manager --enable rhui-REGION-rhel-server-releases-optional
+  sudo yum-config-manager --enable rhui-REGION-rhel-server-supplementary
+  sudo yum-config-manager --enable rhui-REGION-rhel-server-extras
+  sudo yum -y check-update
+  sudo yum install -q -y wget unzip bind-utils ruby rubygems ntp jq
+  sudo systemctl start ntpd.service
+  sudo systemctl enable ntpd.service
+elif [[ ! -z $${APT_GET} ]]; then
+  logger "Debian/Ubuntu system detected"
+  logger "Performing updates and installing prerequisites"
+  sudo apt-get -qq -y update
+  sudo apt-get install -qq -y wget unzip dnsutils ruby rubygems ntp jq
+  sudo systemctl start ntp.service
+  sudo systemctl enable ntp.service
+  sudo sh -c 'echo "\nUseDNS no" >> /etc/ssh/sshd_config'
+  sudo service ssh restart
+else
+  logger "Prerequisites not installed due to OS detection failure"
+  exit 1;
+fi
 
-# Configure Vault user
+##--------------------------------------------------------------------
+## Install AWS specific prerequisites
+
+if [[ ! -z $${YUM} ]]; then
+  logger "RHEL/CentOS system detected"
+  logger "Performing updates and installing prerequisites"
+  curl --silent -O https://bootstrap.pypa.io/get-pip.py
+  sudo python get-pip.py
+  sudo pip install awscli
+elif [[ ! -z $${APT_GET} ]]; then
+  logger "Debian/Ubuntu system detected"
+  logger "Performing updates and installing prerequisites"
+  sudo apt-get -qq -y update
+  sudo apt-get install -qq -y awscli
+else
+  logger "AWS prerequisites not installed due to OS detection failure"
+  exit 1;
+fi
+
+
+##--------------------------------------------------------------------
+## Configure Vault user
+
 USER_NAME="vault"
+USER_COMMENT="HashiCorp Vault user"
 USER_GROUP="vault"
 USER_HOME="/srv/vault"
 
-user_rhel
+if [[ ! -z $${YUM} ]]; then
+  logger "Setting up user $${USER_NAME} for RHEL/CentOS"
+  user_rhel
+elif [[ ! -z $${APT_GET} ]]; then
+  logger "Setting up user $${USER_NAME} for Debian/Ubuntu"
+  user_ubuntu
+else
+  logger "$${USER_NAME} user not created due to OS detection failure"
+  exit 1;
+fi
 
-# Install Vault
+##--------------------------------------------------------------------
+## Install Vault
+
 logger "Downloading Vault"
 curl -o /tmp/vault.zip $${VAULT_ZIP}
+
 logger "Installing Vault"
 sudo unzip -o /tmp/vault.zip -d /usr/local/bin/
 sudo chmod 0755 /usr/local/bin/vault
 sudo chown vault:vault /usr/local/bin/vault
 sudo mkdir -pm 0755 /etc/vault.d
 sudo mkdir -pm 0755 /etc/ssl/vault
+sudo mkdir -p /opt/vault/
+
+logger "/usr/local/bin/vault --version: $(/usr/local/bin/vault --version)"
+
+logger "Configuring Vault"
+
 sudo mkdir -pm 0755 ${tpl_vault_storage_path}
 sudo chown -R vault:vault ${tpl_vault_storage_path}
 sudo chmod -R a+rwx ${tpl_vault_storage_path}
-sudo mkdir -p /opt/vault/
 
 sudo tee /etc/vault.d/vault.hcl <<EOF
 storage "raft" {
@@ -106,9 +186,12 @@ EOF
 
 source /etc/environment
 
+logger "Granting mlock syscall to Vault binary"
 sudo setcap cap_ipc_lock=+ep /usr/local/bin/vault
 
-# Install Vault systemd 
+##--------------------------------------------------------------------
+## Install Vault systemd service
+
 read -d '' VAULT_SERVICE <<EOF
 [Unit]
 Description=Vault
@@ -129,7 +212,9 @@ Group=vault
 WantedBy=multi-user.target
 EOF
 
-# Install Vault systemd that allows additional params/args
+##--------------------------------------------------------------------
+## Install Vault systemd service that allows additional params/args
+
 sudo tee /etc/systemd/system/vault@.service > /dev/null <<EOF
 [Unit]
 Description=Vault
@@ -151,15 +236,29 @@ Group=vault
 WantedBy=multi-user.target
 EOF
 
-SYSTEMD_DIR="/etc/systemd/system"
-logger "Installing systemd services for RHEL/CentOS"
-echo "$${VAULT_SERVICE}" | sudo tee $${SYSTEMD_DIR}/vault.service
-sudo chmod 0664 $${SYSTEMD_DIR}/vault*
+
+if [[ ! -z $${YUM} ]]; then
+  SYSTEMD_DIR="/etc/systemd/system"
+  logger "Installing systemd services for RHEL/CentOS"
+  echo "$${VAULT_SERVICE}" | sudo tee $${SYSTEMD_DIR}/vault.service
+  sudo chmod 0664 $${SYSTEMD_DIR}/vault*
+elif [[ ! -z $${APT_GET} ]]; then
+  SYSTEMD_DIR="/lib/systemd/system"
+  logger "Installing systemd services for Debian/Ubuntu"
+  echo "$${VAULT_SERVICE}" | sudo tee $${SYSTEMD_DIR}/vault.service
+  sudo chmod 0664 $${SYSTEMD_DIR}/vault*
+else
+  logger "Service not installed due to OS detection failure"
+  exit 1;
+fi
 
 sudo systemctl enable vault
 sudo systemctl start vault
 
-# Set up aliases to ease networking to each node
+##-------------------------------------------------------------------
+## Set up aliases to ease networking to each node
 %{ for address, name in tpl_vault_node_address_names  ~}
 echo "${address} ${name}" | sudo tee -a /etc/hosts
 %{ endfor ~}
+
+logger "Complete"

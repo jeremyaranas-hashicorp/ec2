@@ -1,4 +1,7 @@
 # Create Vault Nodes on EC2
+
+This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws
+
 ---
 
 This will spin up 6 Vault nodes (3 for primary cluster and 3 for secondary cluster)

@@ -1,26 +1,52 @@
+# Ubuntu
 provider "aws" {
   region = var.aws_region
 }
 
-data "aws_ami" "amazon-linux-2" {
- most_recent = true
+data "aws_ami" "ubuntu" {
+  most_recent = true
 
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
+  }
 
- filter {
-   name   = "owner-alias"
-   values = ["amazon"]
- }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 
-
- filter {
-   name   = "name"
-   values = ["amzn2-ami-hvm*"]
- }
+  owners = ["099720109477"] # Canonical
 }
+
+
+# # RHEL
+# provider "aws" {
+#   region = var.aws_region
+# }
+
+# data "aws_ami" "amazon-linux-2" {
+#  most_recent = true
+
+
+#  filter {
+#    name   = "owner-alias"
+#    values = ["amazon"]
+#  }
+
+
+#  filter {
+#    name   = "name"
+#    values = ["amzn2-ami-hvm*"]
+#  }
+# }
 
 resource "aws_instance" "primary" {
   count                       = length(var.vault_primary_names)
-  ami                         = data.aws_ami.amazon-linux-2.id
+  # Ubuntu
+  ami                         = data.aws_ami.ubuntu.id
+  # # RHEL
+  # ami                         = data.aws_ami.amazon-linux-2.id
   instance_type               = var.instance_type
   subnet_id                   = module.vault_test_vpc.public_subnets[0]
   key_name                    = var.key_name
@@ -48,7 +74,10 @@ resource "aws_instance" "primary" {
 
 resource "aws_instance" "secondary" {
   count                       = length(var.vault_secondary_names)
-  ami                         = data.aws_ami.amazon-linux-2.id
+  # Ubuntu
+  ami                         = data.aws_ami.ubuntu.id
+  # # RHEL
+  # ami                         = data.aws_ami.amazon-linux-2.id
   instance_type               = var.instance_type
   subnet_id                   = module.vault_test_vpc.public_subnets[0]
   key_name                    = var.key_name
