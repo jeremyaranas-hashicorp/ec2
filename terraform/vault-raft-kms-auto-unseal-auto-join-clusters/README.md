@@ -1,10 +1,10 @@
 # Create Vault nodes on EC2
 
-This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws
+This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws.
 
 ---
 
-This will spin up 2 clusters (primary and secondary) with 3 Raft nodes in each cluster. This cluster uses AWS KMS auto-unseal and Raft auto-join. Note that creating a KMS key cost $1 each time. 
+This will spin up 2 clusters (primary and secondary) with 3 Raft nodes in each cluster. This cluster uses AWS KMS auto-unseal and Raft auto-join.  
 
 1. Set your AWS credentials
 2. Update `terraform.tfvars` and specify the `key_name`, be sure to set the correct

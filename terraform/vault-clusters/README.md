@@ -1,10 +1,10 @@
 # Create Vault Nodes on EC2
 
-This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws
+This is a fork from https://github.com/hashicorp/learn-vault-raft/tree/main/raft-storage/aws.
 
 ---
 
-This will spin up 6 Vault nodes (3 for primary cluster and 3 for secondary cluster)
+This will spin up 6 Vault nodes (3 for the primary cluster and 3 for the secondary cluster)
 
 1. Set your AWS credentials
 2. Update `terraform.tfvars` and specify the `key_name`, be sure to set the correct
@@ -26,6 +26,7 @@ This will spin up 6 Vault nodes (3 for primary cluster and 3 for secondary clust
 1. SSH to primary_1 and initialize and unseal Vault
 
 `export VAULT_ADDR=http://127.0.0.1:8200`
+
 `vault operator init \
     -key-shares=1 \
     -key-threshold=1 \
