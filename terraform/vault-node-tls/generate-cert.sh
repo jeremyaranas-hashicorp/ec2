@@ -1,4 +1,8 @@
-mkdir /home/ec2-user/certs && cd /home/ec2-user/certs
+# # RHEL
+# mkdir /home/ec2-user/certs && cd /home/ec2-user/certs
+
+# Ubuntu
+mkdir /home/ubuntu/certs && cd /home/ubuntu/certs
 
 # Generate CA cert to sign the certificate 
 # Generate a private key for the CA cert to pair with
