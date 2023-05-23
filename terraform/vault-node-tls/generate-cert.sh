@@ -33,3 +33,7 @@ EOF
 
 # Generate certificate for this host
 openssl x509 -req -in vault-primary.vaultsupport.local.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out vault-primary.vaultsupport.local.pem -days 365 -sha256 -extfile vault-primary.vaultsupport.local.ext
+
+#  Install cert
+sudo cp myCA.pem /usr/local/share/ca-certificates/myCA.crt
+sudo update-ca-certificates

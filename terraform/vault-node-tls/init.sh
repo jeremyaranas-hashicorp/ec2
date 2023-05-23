@@ -10,7 +10,7 @@ sudo chmod 755 /home/ubuntu/
 # Ubuntu
 chmod 744 /home/ubuntu/certs/vault-primary.vaultsupport.local.key
 echo "Setting VAULT_ADDR"
-export VAULT_ADDR=https://127.0.0.1:8200
+export VAULT_ADDR=https://10.0.101.21:8200
 echo "Starting Vault service"
 sudo systemctl start vault
 echo "Wait 30 seconds"
