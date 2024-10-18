@@ -32,7 +32,7 @@ variable "vault_secondary_private_ips" {
 
 # URL for Vault OSS binary
 variable "vault_zip_file" {
-  default = "https://releases.hashicorp.com/vault/1.15.3+ent/vault_1.15.3+ent_linux_amd64.zip"
+  default = "https://releases.hashicorp.com/vault/1.17.3+ent/vault_1.17.3+ent_linux_amd64.zip"
 }
 
 # Instance size

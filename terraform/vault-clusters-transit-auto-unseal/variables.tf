@@ -28,12 +28,12 @@ variable "vault_server_private_ips" {
 
 # URL for Vault OSS binary
 variable "vault_oss_zip_file" {
-  default = "https://releases.hashicorp.com/vault/1.14.0/vault_1.14.0_linux_amd64.zip"
+  default = "https://releases.hashicorp.com/vault/1.17.3/vault_1.17.3_linux_amd64.zip"
 }
 
 # URL for Vault ent binary
 variable "vault_ent_zip_file" {
-  default = "https://releases.hashicorp.com/vault/1.14.0+ent/vault_1.14.0+ent_linux_amd64.zip"
+  default = "https://releases.hashicorp.com/vault/1.17.3+ent/vault_1.17.3+ent_linux_amd64.zip"
 }
 
 

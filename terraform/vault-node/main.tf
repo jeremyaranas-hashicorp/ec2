@@ -3,21 +3,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
-}
 
 
 # # RHEL
@@ -44,7 +29,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "vault_server" {
   count                       = length(var.vault_server_name)
   # Ubuntu
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = "ami-005fc0f236362e99f"
   # # RHEL
   # ami                         = data.aws_ami.amazon-linux-2.id
   instance_type               = var.instance_type
